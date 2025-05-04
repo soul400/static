@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
 import random
+import re
 from utils.api_handler import fetch_jaco_data, check_api_available
 from utils.data_processor import process_stream_data, aggregate_data
 from utils.scraper import scrape_jaco_data
@@ -291,15 +292,41 @@ def main():
         
         # Stream selection
         st.subheader("اختيار البث")
-        stream_id = st.text_input("أدخل معرف البث", value=st.session_state.selected_stream if st.session_state.selected_stream else "")
+        
+        st.markdown("""
+        **كيفية الاستخدام:**
+        - يمكنك لصق رابط البث مباشرة من Jaco.live (مثال: https://jaco.live/username/stream123)
+        - أو يمكنك إدخال معرف البث فقط (مثال: username/stream123)
+        """)
+        
+        stream_url = st.text_input("أدخل رابط البث أو معرف البث", 
+                                 value=st.session_state.selected_stream if st.session_state.selected_stream else "",
+                                 help="يمكنك نسخ الرابط من المتصفح ولصقه هنا")
+        
+        # Extract stream ID from URL if necessary
+        if stream_url:
+            # Try to extract stream ID from full URL
+            url_match = re.search(r'jaco\.live/([^/]+(?:/[^/]+)?)', stream_url)
+            if url_match:
+                stream_id = url_match.group(1)
+            else:
+                # If it's not a URL, use as is
+                stream_id = stream_url
+        else:
+            stream_id = ""
+            
+        # Show extracted ID
+        if stream_id and stream_id != stream_url:
+            st.success(f"تم استخراج معرف البث: {stream_id}")
         
         if st.button("تتبع البث"):
             if stream_id:
                 st.session_state.selected_stream = stream_id
-                update_data(stream_id)
+                with st.spinner("جاري تحميل بيانات البث..."):
+                    update_data(stream_id)
                 st.success(f"تم اختيار البث: {stream_id}")
             else:
-                st.error("يرجى إدخال معرف البث")
+                st.error("يرجى إدخال رابط البث أو معرف البث")
         
         # Update frequency
         st.subheader("إعدادات التحديث")
