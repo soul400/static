@@ -14,6 +14,9 @@ def process_stream_data(raw_data, stream_id):
         pd.DataFrame: Processed data in standardized format
     """
     try:
+        # Print incoming raw data for debugging
+        print(f"Processing raw data: {raw_data}")
+        
         # Initialize empty dataframe with required columns
         processed_data = pd.DataFrame({
             'timestamp': [datetime.now()],
@@ -36,15 +39,22 @@ def process_stream_data(raw_data, stream_id):
             # Extract metrics
             if 'stats' in raw_data:
                 stats = raw_data['stats']
-                processed_data['likes'] = stats.get('likes', 0)
-                processed_data['viewers'] = stats.get('viewers', 0)
-                processed_data['comments'] = stats.get('comments', 0)
-                processed_data['gifts'] = stats.get('gifts', 0)
+                processed_data.loc[0, 'likes'] = stats.get('likes', 0)
+                processed_data.loc[0, 'viewers'] = stats.get('viewers', 0)
+                processed_data.loc[0, 'comments'] = stats.get('comments', 0)
+                processed_data.loc[0, 'gifts'] = stats.get('gifts', 0)
             else:
-                processed_data['likes'] = raw_data.get('likes', 0)
-                processed_data['viewers'] = raw_data.get('viewers', 0)
-                processed_data['comments'] = raw_data.get('comments', 0)
-                processed_data['gifts'] = raw_data.get('gifts', 0)
+                processed_data.loc[0, 'likes'] = raw_data.get('likes', 0)
+                processed_data.loc[0, 'viewers'] = raw_data.get('viewers', 0)
+                processed_data.loc[0, 'comments'] = raw_data.get('comments', 0)
+                processed_data.loc[0, 'gifts'] = raw_data.get('gifts', 0)
+                
+            # Ensure all values are integers
+            for col in ['likes', 'viewers', 'comments', 'gifts']:
+                processed_data[col] = processed_data[col].astype(int)
+        
+        # Print the processed data for debugging
+        print(f"Processed data: {processed_data}")
         
         return processed_data
     

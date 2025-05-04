@@ -78,16 +78,16 @@ def check_connection():
 def update_data(stream_id):
     """Fetch updated data for the selected stream"""
     try:
-        if st.session_state.using_api:
-            new_data = fetch_jaco_data(stream_id)
-        elif st.session_state.using_scraper:
-            new_data = scrape_jaco_data(stream_id)
-        else:
-            st.error("لا يمكن تحديث البيانات. يرجى التحقق من الاتصال أو إدخال البيانات يدويًا.")
-            return
+        # Always use scraper regardless of connection status
+        # This ensures we get data even if API check fails
+        st.session_state.using_scraper = True
+        new_data = scrape_jaco_data(stream_id)
         
         if new_data is not None:
             processed_data = process_stream_data(new_data, stream_id)
+            
+            # Print debug info
+            print(f"Debug - Processed data: {processed_data}")
             
             # Add to existing data
             st.session_state.data = pd.concat([st.session_state.data, processed_data])
