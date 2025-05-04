@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import time
 import random
 import re
+import requests
 from utils.api_handler import fetch_jaco_data, check_api_available
 from utils.data_processor import process_stream_data, aggregate_data
 from utils.scraper import scrape_jaco_data
@@ -51,29 +52,27 @@ if 'update_frequency' not in st.session_state:
 
 def check_connection():
     """Check if Jaco.live API is available"""
-    api_available = check_api_available()
-    
-    if api_available:
-        st.session_state.using_api = True
-        st.session_state.using_scraper = False
-        st.session_state.connection_status = "متصل (API)"
-        return True
-    else:
-        try:
-            # Try scraping as fallback
-            test_data = scrape_jaco_data("test")
-            if test_data is not None:
-                st.session_state.using_api = False
-                st.session_state.using_scraper = True
-                st.session_state.connection_status = "متصل (تحليل الويب)"
-                return True
-        except:
+    # Always use the scraper method for now as it's more reliable
+    # No API checks needed
+    try:
+        # Just check if the website is available
+        response = requests.get("https://jaco.live", timeout=10)
+        if response.status_code == 200:
+            st.session_state.using_api = False
+            st.session_state.using_scraper = True
+            st.session_state.connection_status = "متصل (تحليل الويب)"
+            return True
+        else:
             st.session_state.using_api = False
             st.session_state.using_scraper = False
             st.session_state.connection_status = "غير متصل"
             return False
-    
-    return False
+    except Exception as e:
+        print(f"خطأ الاتصال: {str(e)}")
+        st.session_state.using_api = False
+        st.session_state.using_scraper = False
+        st.session_state.connection_status = "غير متصل"
+        return False
 
 def update_data(stream_id):
     """Fetch updated data for the selected stream"""
