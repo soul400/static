@@ -52,7 +52,7 @@ if 'update_frequency' not in st.session_state:
 def check_connection():
     """Check if Jaco.live API is available"""
     api_available = check_api_available()
-    
+
     if api_available:
         st.session_state.using_api = True
         st.session_state.using_scraper = False
@@ -72,7 +72,7 @@ def check_connection():
             st.session_state.using_scraper = False
             st.session_state.connection_status = "غير متصل"
             return False
-    
+
     return False
 
 def update_data(stream_id):
@@ -85,14 +85,14 @@ def update_data(stream_id):
         else:
             st.error("لا يمكن تحديث البيانات. يرجى التحقق من الاتصال أو إدخال البيانات يدويًا.")
             return
-        
+
         if new_data is not None:
             processed_data = process_stream_data(new_data, stream_id)
-            
+
             # Add to existing data
             st.session_state.data = pd.concat([st.session_state.data, processed_data])
             st.session_state.last_update = datetime.now()
-            
+
     except Exception as e:
         st.error(f"حدث خطأ أثناء تحديث البيانات: {str(e)}")
 
@@ -104,14 +104,14 @@ def add_manual_data():
             stream_id = st.text_input("معرف البث", value=st.session_state.selected_stream if st.session_state.selected_stream else "")
             streamer_name = st.text_input("اسم المبث")
             likes = st.number_input("عدد الإعجابات", min_value=0, value=0)
-        
+
         with col2:
             viewers = st.number_input("عدد المشاهدين", min_value=0, value=0)
             comments = st.number_input("عدد التعليقات", min_value=0, value=0)
             gifts = st.number_input("عدد الهدايا", min_value=0, value=0)
-        
+
         submitted = st.form_submit_button("إضافة البيانات")
-        
+
         if submitted:
             # Create new data entry
             new_entry = pd.DataFrame({
@@ -123,7 +123,7 @@ def add_manual_data():
                 'comments': [comments],
                 'gifts': [gifts]
             })
-            
+
             # Add to existing data
             st.session_state.data = pd.concat([st.session_state.data, new_entry])
             st.session_state.selected_stream = stream_id
@@ -134,27 +134,27 @@ def create_dashboard():
     """Create the main dashboard with visualizations"""
     if st.session_state.data.empty or st.session_state.selected_stream is None:
         return
-        
+
     # Filter data for the selected stream
     stream_data = st.session_state.data[st.session_state.data['stream_id'] == st.session_state.selected_stream].copy()
-    
+
     if stream_data.empty:
         st.warning("لا توجد بيانات متاحة للبث المحدد")
         return
-    
+
     # Sort by timestamp for proper trend visualization
     stream_data = stream_data.sort_values('timestamp')
-    
+
     # Convert timestamp to more readable format for display
     stream_data['time_display'] = stream_data['timestamp'].dt.strftime('%H:%M:%S')
-    
+
     # Get the most recent data point
     latest_data = stream_data.iloc[-1]
     streamer_name = latest_data['streamer_name']
-    
+
     # Display header with streamer info
     st.header(f"لوحة إحصائيات بث {streamer_name} ({st.session_state.selected_stream})")
-    
+
     # Main metrics
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -169,12 +169,12 @@ def create_dashboard():
     with col4:
         st.metric("الهدايا", f"{int(latest_data['gifts']):,}", 
                   delta=int(latest_data['gifts'] - stream_data['gifts'].iloc[-2]) if len(stream_data) > 1 else None)
-    
+
     # Charts
     st.subheader("تطور الإحصائيات خلال البث")
-    
+
     tab1, tab2, tab3 = st.tabs(["معدلات التفاعل", "عدد المشاهدين", "الهدايا والتعليقات"])
-    
+
     with tab1:
         engagement_fig = px.line(stream_data, x='time_display', y=['likes', 'comments'], 
                               title="تطور الإعجابات والتعليقات مع الوقت",
@@ -193,7 +193,7 @@ def create_dashboard():
             )
         )
         st.plotly_chart(engagement_fig, use_container_width=True)
-        
+
     with tab2:
         viewers_fig = px.area(stream_data, x='time_display', y='viewers', 
                            title="تطور عدد المشاهدين مع الوقت",
@@ -204,10 +204,10 @@ def create_dashboard():
             hovermode="x"
         )
         st.plotly_chart(viewers_fig, use_container_width=True)
-        
+
     with tab3:
         col1, col2 = st.columns(2)
-        
+
         with col1:
             comments_per_minute = []
             for i in range(1, len(stream_data)):
@@ -217,11 +217,11 @@ def create_dashboard():
                     comments_per_minute.append(comment_diff / time_diff)
                 else:
                     comments_per_minute.append(0)
-            
+
             # Add 0 for the first point to match length
             comments_per_minute = [0] + comments_per_minute
             stream_data['comments_per_minute'] = comments_per_minute
-            
+
             comments_fig = px.bar(stream_data, x='time_display', y='comments_per_minute',
                                title="معدل التعليقات لكل دقيقة",
                                labels={"time_display": "الوقت", "comments_per_minute": "التعليقات/دقيقة"})
@@ -230,7 +230,7 @@ def create_dashboard():
                 yaxis_title="التعليقات/دقيقة"
             )
             st.plotly_chart(comments_fig, use_container_width=True)
-        
+
         with col2:
             gifts_fig = px.line(stream_data, x='time_display', y='gifts',
                              title="تطور عدد الهدايا مع الوقت",
@@ -240,10 +240,10 @@ def create_dashboard():
                 yaxis_title="عدد الهدايا"
             )
             st.plotly_chart(gifts_fig, use_container_width=True)
-    
+
     # Overall stream statistics
     st.subheader("إحصائيات عامة للبث")
-    
+
     # Calculate metrics
     stream_duration = (stream_data['timestamp'].max() - stream_data['timestamp'].min()).total_seconds() / 60
     total_likes = int(latest_data['likes'])
@@ -251,7 +251,7 @@ def create_dashboard():
     total_gifts = int(latest_data['gifts'])
     max_viewers = int(stream_data['viewers'].max())
     avg_viewers = int(stream_data['viewers'].mean())
-    
+
     # Display metrics in a nice format
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -263,7 +263,7 @@ def create_dashboard():
     with col3:
         st.info(f"💬 إجمالي التعليقات: {total_comments:,}")
         st.info(f"🎁 إجمالي الهدايا: {total_gifts:,}")
-    
+
     # Last update time
     if st.session_state.last_update:
         st.caption(f"آخر تحديث: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -272,14 +272,14 @@ def main():
     # Sidebar
     with st.sidebar:
         st.title("إحصائيات بثوث المهره")
-        
+
         # Connection status
         st.subheader("حالة الاتصال")
         conn_col1, conn_col2 = st.columns([3, 1])
-        
+
         with conn_col1:
             st.write(f"الحالة: {st.session_state.connection_status}")
-        
+
         with conn_col2:
             if st.button("فحص"):
                 with st.spinner("جاري الفحص..."):
@@ -288,20 +288,20 @@ def main():
                         st.success("تم الاتصال بنجاح")
                     else:
                         st.error("فشل الاتصال")
-        
+
         # Stream selection
         st.subheader("اختيار البث")
-        
+
         st.markdown("""
         **كيفية الاستخدام:**
         - يمكنك لصق رابط البث مباشرة من Jaco.live (مثال: https://jaco.live/username/stream123)
         - أو يمكنك إدخال معرف البث فقط (مثال: username/stream123)
         """)
-        
+
         stream_url = st.text_input("أدخل رابط البث أو معرف البث", 
                                  value=st.session_state.selected_stream if st.session_state.selected_stream else "",
                                  help="يمكنك نسخ الرابط من المتصفح ولصقه هنا")
-        
+
         # Extract stream ID from URL if necessary
         if stream_url:
             # Try to extract stream ID from full URL
@@ -313,11 +313,11 @@ def main():
                 stream_id = stream_url
         else:
             stream_id = ""
-            
+
         # Show extracted ID
         if stream_id and stream_id != stream_url:
             st.success(f"تم استخراج معرف البث: {stream_id}")
-        
+
         if st.button("تتبع البث"):
             if stream_id:
                 st.session_state.selected_stream = stream_id
@@ -326,16 +326,16 @@ def main():
                 st.success(f"تم اختيار البث: {stream_id}")
             else:
                 st.error("يرجى إدخال رابط البث أو معرف البث")
-        
+
         # Update frequency
         st.subheader("إعدادات التحديث")
         update_freq = st.slider("الفاصل الزمني للتحديث (ثانية)", 
                                min_value=10, max_value=300, value=st.session_state.update_frequency, step=10)
-        
+
         if update_freq != st.session_state.update_frequency:
             st.session_state.update_frequency = update_freq
             st.success(f"تم تغيير فترة التحديث إلى {update_freq} ثانية")
-        
+
         # Export data
         st.subheader("تصدير البيانات")
         if not st.session_state.data.empty and st.session_state.selected_stream:
@@ -348,19 +348,47 @@ def main():
                     file_name=f"jaco_stream_{st.session_state.selected_stream}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                     mime="text/csv"
                 )
-        
+
         # Help section
         with st.expander("مساعدة"):
             st.write(HELP_TEXTS['main_help'])
-    
+
     # Main content
-    st.title("📊 إحصائيات بثوث المهره")
-    
-    # No banner image
-    
+    st.markdown("""
+    <style>
+    .main .block-container {
+        padding-top: 2rem;
+        max-width: 1000px;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+    .stButton > button {
+        width: 100%;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+    }
+    .streamlit-expanderHeader {
+        font-size: 1rem;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 2.5rem;
+    }
+    .streamlit-expanderContent {
+        font-size: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<h1 style='text-align: center; color: #1E88E5;'>إحصائيات بثوث المهره</h1>", unsafe_allow_html=True)
+
     # Tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["لوحة المعلومات", "إدخال البيانات", "حول التطبيق"])
-    
+    tab1, tab2, tab3 = st.tabs(["📊 لوحة المعلومات", "📝 إدخال البيانات", "ℹ️ حول التطبيق"])
+
     with tab1:
         if not st.session_state.data.empty and st.session_state.selected_stream:
             # Check if it's time to update data
@@ -368,10 +396,10 @@ def main():
                 (datetime.now() - st.session_state.last_update).total_seconds() >= st.session_state.update_frequency):
                 with st.spinner("جاري تحديث البيانات..."):
                     update_data(st.session_state.selected_stream)
-            
+
             # Create and display dashboard
             create_dashboard()
-            
+
             # Auto-refresh option
             auto_refresh = st.checkbox("تحديث تلقائي", value=True)
             if auto_refresh:
@@ -379,7 +407,7 @@ def main():
                 if st.session_state.last_update:
                     elapsed = (datetime.now() - st.session_state.last_update).total_seconds()
                     time_to_refresh = max(1, st.session_state.update_frequency - elapsed)
-                
+
                 st.write(f"سيتم التحديث تلقائيًا بعد {int(time_to_refresh)} ثانية")
                 time.sleep(min(10, time_to_refresh))  # Sleep for a maximum of 10 seconds to prevent UI freezing
                 st.rerun()
@@ -387,37 +415,37 @@ def main():
             # No data yet, show welcome screen
             st.info("مرحبًا بك في تطبيق إحصائيات بثوث المهره!")
             st.write("لبدء تتبع بث، يرجى إدخال معرف البث في الشريط الجانبي ثم الضغط على 'تتبع البث'.")
-            
+
             st.write("لبدء تتبع بث، يرجى إدخال معرف البث في الشريط الجانبي ثم الضغط على 'تتبع البث'.")
-    
+
     with tab2:
         st.header("إدخال البيانات يدويًا")
         st.write("استخدم هذا القسم لإدخال بيانات البث يدويًا في حال عدم توفر اتصال مباشر مع المنصة.")
-        
+
         add_manual_data()
-    
+
     with tab3:
         st.header("حول التطبيق")
-        
+
         col1, col2 = st.columns([1, 2])
-        
+
         with col1:
             st.image("https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3", use_column_width=True)
-        
+
         with col2:
             st.subheader("إحصائيات بثوث المهره")
             st.write("""
             هذا التطبيق يساعدك على تتبع وتحليل إحصائيات البث المباشر من منصة Jaco.live بطريقة سهلة وبسيطة.
-            
+
             يمكنك من خلاله:
             - تتبع عدد الإعجابات والمشاهدين والتعليقات والهدايا
             - مشاهدة تطور الإحصائيات في الوقت الفعلي
             - تحليل أداء البث من خلال الرسوم البيانية
             - تصدير البيانات للاستخدام في برامج أخرى
-            
+
             للاستخدام الأمثل، أدخل معرف البث واترك التطبيق يعمل على جمع وتحليل البيانات تلقائيًا.
             """)
-        
+
         st.subheader("كيفية الاستخدام")
         st.markdown(HELP_TEXTS['how_to_use'])
 
