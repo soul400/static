@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import time
 import random
 import re
-import requests
 from utils.api_handler import fetch_jaco_data, check_api_available
 from utils.data_processor import process_stream_data, aggregate_data
 from utils.scraper import scrape_jaco_data
@@ -52,41 +51,43 @@ if 'update_frequency' not in st.session_state:
 
 def check_connection():
     """Check if Jaco.live API is available"""
-    # Always use the scraper method for now as it's more reliable
-    # No API checks needed
-    try:
-        # Just check if the website is available
-        response = requests.get("https://jaco.live", timeout=10)
-        if response.status_code == 200:
-            st.session_state.using_api = False
-            st.session_state.using_scraper = True
-            st.session_state.connection_status = "متصل (تحليل الويب)"
-            return True
-        else:
+    api_available = check_api_available()
+    
+    if api_available:
+        st.session_state.using_api = True
+        st.session_state.using_scraper = False
+        st.session_state.connection_status = "متصل (API)"
+        return True
+    else:
+        try:
+            # Try scraping as fallback
+            test_data = scrape_jaco_data("test")
+            if test_data is not None:
+                st.session_state.using_api = False
+                st.session_state.using_scraper = True
+                st.session_state.connection_status = "متصل (تحليل الويب)"
+                return True
+        except:
             st.session_state.using_api = False
             st.session_state.using_scraper = False
             st.session_state.connection_status = "غير متصل"
             return False
-    except Exception as e:
-        print(f"خطأ الاتصال: {str(e)}")
-        st.session_state.using_api = False
-        st.session_state.using_scraper = False
-        st.session_state.connection_status = "غير متصل"
-        return False
+    
+    return False
 
 def update_data(stream_id):
     """Fetch updated data for the selected stream"""
     try:
-        # Always use scraper regardless of connection status
-        # This ensures we get data even if API check fails
-        st.session_state.using_scraper = True
-        new_data = scrape_jaco_data(stream_id)
+        if st.session_state.using_api:
+            new_data = fetch_jaco_data(stream_id)
+        elif st.session_state.using_scraper:
+            new_data = scrape_jaco_data(stream_id)
+        else:
+            st.error("لا يمكن تحديث البيانات. يرجى التحقق من الاتصال أو إدخال البيانات يدويًا.")
+            return
         
         if new_data is not None:
             processed_data = process_stream_data(new_data, stream_id)
-            
-            # Print debug info
-            print(f"Debug - Processed data: {processed_data}")
             
             # Add to existing data
             st.session_state.data = pd.concat([st.session_state.data, processed_data])
@@ -271,7 +272,7 @@ def main():
     # Sidebar
     with st.sidebar:
         st.title("إحصائيات بثوث المهره")
-        # Remove placeholder image as requested by user
+        st.image("https://images.unsplash.com/photo-1530202741-e752bdc9d582", use_column_width=True)
         
         # Connection status
         st.subheader("حالة الاتصال")
@@ -356,7 +357,8 @@ def main():
     # Main content
     st.title("📊 إحصائيات بثوث المهره")
     
-    # Simplified header with no images as requested by user
+    # Display banner image
+    st.image("https://images.unsplash.com/photo-1526628953301-3e589a6a8b74", use_column_width=True)
     
     # Tabs for different sections
     tab1, tab2, tab3 = st.tabs(["لوحة المعلومات", "إدخال البيانات", "حول التطبيق"])
@@ -388,8 +390,13 @@ def main():
             st.info("مرحبًا بك في تطبيق إحصائيات بثوث المهره!")
             st.write("لبدء تتبع بث، يرجى إدخال معرف البث في الشريط الجانبي ثم الضغط على 'تتبع البث'.")
             
-            # Simple welcome message with no images
-            st.info("قم بإدخال رابط البث أو معرف البث في الشريط الجانبي واضغط زر 'تتبع البث' لبدء جمع الإحصائيات")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image("https://images.unsplash.com/photo-1507766054980-dec40073b0f3", use_column_width=True)
+                st.caption("تتبع إحصائيات البث المباشر")
+            with col2:
+                st.image("https://images.unsplash.com/photo-1515923256482-1c04580b477c", use_column_width=True)
+                st.caption("لوحة معلومات حديثة وجذابة")
     
     with tab2:
         st.header("إدخال البيانات يدويًا")
@@ -400,18 +407,24 @@ def main():
     with tab3:
         st.header("حول التطبيق")
         
-        st.subheader("إحصائيات بثوث المهره")
-        st.write("""
-        هذا التطبيق يساعدك على تتبع وتحليل إحصائيات البث المباشر من منصة Jaco.live بطريقة سهلة وبسيطة.
+        col1, col2 = st.columns([1, 2])
         
-        يمكنك من خلاله:
-        - تتبع عدد الإعجابات والمشاهدين والتعليقات والهدايا
-        - مشاهدة تطور الإحصائيات في الوقت الفعلي
-        - تحليل أداء البث من خلال الرسوم البيانية
-        - تصدير البيانات للاستخدام في برامج أخرى
+        with col1:
+            st.image("https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3", use_column_width=True)
         
-        للاستخدام الأمثل، أدخل معرف البث واترك التطبيق يعمل على جمع وتحليل البيانات تلقائيًا.
-        """)
+        with col2:
+            st.subheader("إحصائيات بثوث المهره")
+            st.write("""
+            هذا التطبيق يساعدك على تتبع وتحليل إحصائيات البث المباشر من منصة Jaco.live بطريقة سهلة وبسيطة.
+            
+            يمكنك من خلاله:
+            - تتبع عدد الإعجابات والمشاهدين والتعليقات والهدايا
+            - مشاهدة تطور الإحصائيات في الوقت الفعلي
+            - تحليل أداء البث من خلال الرسوم البيانية
+            - تصدير البيانات للاستخدام في برامج أخرى
+            
+            للاستخدام الأمثل، أدخل معرف البث واترك التطبيق يعمل على جمع وتحليل البيانات تلقائيًا.
+            """)
         
         st.subheader("كيفية الاستخدام")
         st.markdown(HELP_TEXTS['how_to_use'])
