@@ -341,13 +341,39 @@ def main():
         if not st.session_state.data.empty and st.session_state.selected_stream:
             stream_data = st.session_state.data[st.session_state.data['stream_id'] == st.session_state.selected_stream]
             if not stream_data.empty:
-                csv_data = stream_data.to_csv(index=False)
+                # Calculate report duration in minutes
+                report_duration = (stream_data['timestamp'].max() - stream_data['timestamp'].min()).total_seconds() / 60
+                
+                # Create summary data
+                summary_data = f"""تقرير البث
+مدة التقرير: {report_duration:.2f} دقيقة
+معرف البث: {st.session_state.selected_stream}
+وقت التقرير: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+أعلى المتفاعلين:
+- الأكثر إعجاباً:
+{stream_data.nlargest(5, 'likes')['streamer_name'].to_string(index=False)}
+
+- الأكثر تعليقاً:
+{stream_data.nlargest(5, 'comments')['streamer_name'].to_string(index=False)}
+
+- مرسلو الهدايا:
+{stream_data[stream_data['gifts'] > 0]['streamer_name'].unique().tolist()}
+"""
+                
+                # Export data with summary
+                combined_data = summary_data + "\n\nالبيانات التفصيلية:\n" + stream_data.to_csv(index=False)
+                
                 st.download_button(
-                    label="تنزيل البيانات (CSV)",
-                    data=csv_data,
+                    label="تنزيل التقرير الكامل (CSV)",
+                    data=combined_data,
                     file_name=f"jaco_stream_{st.session_state.selected_stream}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                     mime="text/csv"
                 )
+                
+                # Display summary in UI
+                with st.expander("ملخص التقرير"):
+                    st.text(summary_data)
 
         # Help section
         with st.expander("مساعدة"):
