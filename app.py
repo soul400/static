@@ -272,7 +272,6 @@ def main():
     # Sidebar
     with st.sidebar:
         st.title("إحصائيات بثوث المهره")
-        st.image("https://images.unsplash.com/photo-1530202741-e752bdc9d582", use_column_width=True)
         
         # Connection status
         st.subheader("حالة الاتصال")
@@ -357,8 +356,7 @@ def main():
     # Main content
     st.title("📊 إحصائيات بثوث المهره")
     
-    # Display banner image
-    st.image("https://images.unsplash.com/photo-1526628953301-3e589a6a8b74", use_column_width=True)
+    # No banner image
     
     # Tabs for different sections
     tab1, tab2, tab3 = st.tabs(["لوحة المعلومات", "إدخال البيانات", "حول التطبيق"])
@@ -390,13 +388,7 @@ def main():
             st.info("مرحبًا بك في تطبيق إحصائيات بثوث المهره!")
             st.write("لبدء تتبع بث، يرجى إدخال معرف البث في الشريط الجانبي ثم الضغط على 'تتبع البث'.")
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.image("https://images.unsplash.com/photo-1507766054980-dec40073b0f3", use_column_width=True)
-                st.caption("تتبع إحصائيات البث المباشر")
-            with col2:
-                st.image("https://images.unsplash.com/photo-1515923256482-1c04580b477c", use_column_width=True)
-                st.caption("لوحة معلومات حديثة وجذابة")
+            st.write("لبدء تتبع بث، يرجى إدخال معرف البث في الشريط الجانبي ثم الضغط على 'تتبع البث'.")
     
     with tab2:
         st.header("إدخال البيانات يدويًا")
