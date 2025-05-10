@@ -344,20 +344,28 @@ def main():
                 # Calculate report duration in minutes
                 report_duration = (stream_data['timestamp'].max() - stream_data['timestamp'].min()).total_seconds() / 60
                 
-                # Create summary data
-                summary_data = f"""تقرير البث
-مدة التقرير: {report_duration:.2f} دقيقة
-معرف البث: {st.session_state.selected_stream}
-وقت التقرير: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                # Set timezone to Saudi Arabia
+                from datetime import datetime
+                import pytz
+                saudi_tz = pytz.timezone('Asia/Riyadh')
+                current_time = datetime.now(saudi_tz)
 
-أعلى المتفاعلين:
-- الأكثر إعجاباً:
+                # Create bilingual summary data
+                summary_data = f"""Stream Report | تقرير البث
+----------------------------------
+Duration | المدة: {report_duration:.2f} minutes | دقيقة
+Stream ID | معرف البث: {st.session_state.selected_stream}
+Report Time | وقت التقرير: {current_time.strftime('%Y-%m-%d %H:%M')} (KSA | توقيت السعودية)
+
+Top Engagement | أعلى المتفاعلين:
+----------------------------------
+Most Likes | الأكثر إعجاباً:
 {stream_data.nlargest(5, 'likes')['streamer_name'].to_string(index=False)}
 
-- الأكثر تعليقاً:
+Most Comments | الأكثر تعليقاً:
 {stream_data.nlargest(5, 'comments')['streamer_name'].to_string(index=False)}
 
-- مرسلو الهدايا:
+Gift Senders | مرسلو الهدايا:
 {stream_data[stream_data['gifts'] > 0]['streamer_name'].unique().tolist()}
 """
                 

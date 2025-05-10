@@ -1,5 +1,4 @@
 
-
 beautifulsoup4>=4.13.4
 fastapi>=0.110.0
 uvicorn>=0.27.1
@@ -8,3 +7,4 @@ plotly>=6.0.1
 requests>=2.32.3
 streamlit>=1.45.0
 trafilatura>=2.0.0
+pytz
